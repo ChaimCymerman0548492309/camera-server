@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>שידור חי</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style> body { text-align: center; font-family: Arial; } video { width: 100%; max-width: 640px; } </style>
+</head>
+<body>
+    <h1>שידור מצלמה ומיקרופון</h1>
+    <button id="startBtn">התחל שידור חי</button>
+    <p id="status"></p>
+    <video id="localVideo" autoplay playsinline muted></video>
+
+    <script>
+        const socket = io('https://your-server-url.onrender.com'); // ← שנה לכתובת השרת שלך (HTTPS!)
+        let peerConnection;
+        let localStream;
+
+        const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }; // STUN חינמי
+
+        document.getElementById('startBtn').addEventListener('click', async () => {
+            const status = document.getElementById('status');
+            status.textContent = 'מבקש הרשאות...';
+
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                document.getElementById('localVideo').srcObject = localStream;
+
+                peerConnection = new RTCPeerConnection(config);
+
+                // הוסף את הסטרימינג שלך ל-PeerConnection
+                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+                // שלח ICE candidates
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) socket.emit('candidate', event.candidate);
+                };
+
+                // צור Offer
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                socket.emit('offer', offer);
+
+                status.innerHTML = '✅ משדר חי!';
+
+            } catch (err) {
+                status.textContent = 'שגיאה: ' + err.message;
+            }
+        });
+
+        // קבל Answer מה-viewer
+        socket.on('answer', async (answer) => {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        });
+
+        socket.on('candidate', async (candidate) => {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        });
+    </script>
+</body>
+</html>

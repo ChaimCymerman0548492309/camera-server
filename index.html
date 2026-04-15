@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>גישה למצלמה ומיקרופון</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #f0f0f0; }
+        button { padding: 15px 30px; font-size: 18px; margin: 20px; }
+        video { width: 100%; max-width: 640px; border: 2px solid #333; border-radius: 8px; }
+        #status { margin: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>לחץ כדי להתחיל גישה למצלמה + מיקרופון</h1>
+    <p>הדפדפן יבקש ממך אישור – עליך לאשר כדי שהאתר יראה אותך.</p>
+    
+    <button id="startBtn">הפעל מצלמה ומיקרופון</button>
+    <div id="status"></div>
+    
+    <video id="video" autoplay playsinline muted></video>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const video = document.getElementById('video');
+        const status = document.getElementById('status');
+
+        startBtn.addEventListener('click', async () => {
+            startBtn.disabled = true;
+            status.textContent = 'מבקש הרשאות...';
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "user" },  // מצלמה קדמית (אפשר "environment" לאחורית)
+                    audio: true
+                });
+
+                video.srcObject = stream;
+                status.innerHTML = '✅ <span style="color:green">גישה ניתנה! המצלמה והמיקרופון פעילים.</span>';
+                
+                // כאן אפשר להוסיף בהמשך: הקלטה או שליחה לשרת
+
+            } catch (err) {
+                console.error(err);
+                status.innerHTML = '❌ המשתמש סירב או שיש שגיאה: ' + err.message;
+                startBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
